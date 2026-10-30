@@ -15,12 +15,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -43,6 +43,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -107,42 +108,55 @@ fun MergeBazaarApp(game: Game) {
         modifier = Modifier
             .fillMaxSize()
             .background(BG)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Header
+        // Compact header: title + coins/stars/energy in ONE thin row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("🎪 Merge Bazaar", fontSize = 24.sp, fontWeight = FontWeight.Black, color = ACCENT)
-            SmallButton("New Game") { game.newGame() }
+            Text("🎪 Merge Bazaar", fontSize = 18.sp, fontWeight = FontWeight.Black, color = ACCENT)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                StatChip("🪙 ${game.coins}")
+                StatChip("⭐ ${game.stars}")
+                StatChip("⚡ ${game.energy}/50")
+            }
         }
-        // Story card
+        // Thin level progress bar
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Level ${game.level}  •  ${game.stars % 3}/3 ⭐", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("🔥 ${game.streak} day streak  •  Score ${game.score}", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFFFF8E1))
-                .border(2.dp, Color(0xFFE6A817), RoundedCornerShape(14.dp))
-                .padding(10.dp)
+                .height(6.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color(0xFFECDCC6))
         ) {
-            Text("🎪 Maya's Bazaar — ${game.storyText()}", fontSize = 12.sp, lineHeight = 16.sp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth((game.stars % 3) / 3f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(GOLD)
+            )
         }
-        // Event banner
+        // Rush banner only when live, one line
         if (eventActive()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(Color(0xFFFF416C))
-                    .padding(8.dp),
+                    .padding(vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "🔥 BAZAAR RUSH LIVE! Double stars! Ends in ~${eventEndsInMinutes()} min",
-                    color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                    "🔥 BAZAAR RUSH! Double stars! ~${eventEndsInMinutes()} min left",
+                    color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
                 )
             }
         }
@@ -157,36 +171,36 @@ fun MergeBazaarApp(game: Game) {
                         .background(if (selected) ACCENT else Color.White)
                         .border(1.dp, ACCENT, RoundedCornerShape(999.dp))
                         .clickable { tab = t }
-                        .padding(vertical = 7.dp),
+                        .padding(vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(t, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (selected) Color.White else ACCENT)
                 }
             }
         }
-        when (tab) {
-            "Board" -> BoardTab(game)
-            "Quests" -> QuestsTab(game)
-            "Pass" -> PassTab(game)
-            "Collection" -> CollectionTab(game)
-            "Race" -> RaceTab(game)
+        // Content fills the rest of the screen, no scrolling on Board
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            when (tab) {
+                "Board" -> BoardTab(game)
+                "Quests" -> QuestsTab(game)
+                "Pass" -> PassTab(game)
+                "Collection" -> CollectionTab(game)
+                "Race" -> RaceTab(game)
+            }
         }
     }
 }
 
 @Composable
-fun StatBox(label: String, value: String, sub: String = "") {
-    Column(
+fun StatChip(text: String) {
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(999.dp))
             .background(Color.White)
-            .border(1.dp, Color(0xFFE6CFB8), RoundedCornerShape(12.dp))
-            .padding(vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .border(1.dp, Color(0xFFE6CFB8), RoundedCornerShape(999.dp))
+            .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7D5A44))
-        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Black)
-        if (sub.isNotEmpty()) Text(sub, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = ACCENT)
+        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Black)
     }
 }
 
@@ -209,79 +223,34 @@ fun BoardTab(game: Game) {
     var dragPos by remember { mutableStateOf(Offset.Zero) }
     var dragOver by remember { mutableStateOf<Int?>(null) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        // Stats
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+        // Orders: one compact row, right under the tabs
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(Modifier.weight(1f)) { StatBox("Score", "${game.score}") }
-            Box(Modifier.weight(1f)) { StatBox("🪙 Coins", "${game.coins}") }
-            Box(Modifier.weight(1f)) { StatBox("⭐ Stars", "${game.stars}") }
-            Box(Modifier.weight(1f)) {
-                StatBox("⚡ Energy", "${game.energy}/50", if (game.energy >= 50) "Full" else "+1 in ${game.refillCountdown}s")
-            }
-        }
-        // Level bar
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(PANEL)
-                .border(1.dp, Color(0xFFE6CCB2), RoundedCornerShape(12.dp))
-                .padding(8.dp)
-        ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Level ${game.level}  •  ⭐ ${game.stars % 3}/3 to Level ${game.level + 1}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text("🔥 ${game.streak} day streak", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFECDCC6))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth((game.stars % 3) / 3f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(GOLD)
-                )
-            }
-        }
-        // Stalls
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StallCard("🥐🍎", "Bakery Stall", game.stars >= 3, "Unlocks at 3 ⭐ (${game.stars}/3)")
-            StallCard("💐👑", "Flower & Gold", game.stars >= 6, "Unlocks at 6 ⭐ (${game.stars}/6)")
-        }
-        // Orders
-        Text("Customer Orders (tap order, then tap matching item)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B4C35))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             game.orders.forEachIndexed { idx, ord ->
                 val selected = game.selectedOrder == idx
                 val ready = game.board.any { it is Cell.Item && it.chain == ord.chain && it.level == ord.level }
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(if (selected) Color(0xFFD4EEFF) else Color.White)
-                        .border(2.dp, if (selected) BLUE else if (ready) GREEN else Color(0xFFDFBE9F), RoundedCornerShape(14.dp))
+                        .border(2.dp, if (selected) BLUE else if (ready) GREEN else Color(0xFFDFBE9F), RoundedCornerShape(12.dp))
                         .clickable { game.tapOrder(idx) }
-                        .padding(8.dp),
+                        .padding(vertical = 5.dp, horizontal = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(ord.avatar, fontSize = 20.sp)
-                    Text("${ord.emoji} L${ord.level}", fontSize = 16.sp)
-                    Text(ord.name, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                    Text("+${ord.coins} 🪙 +1 ⭐", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ACCENT)
-                    Text("⏰ ${ord.expiresIn}s", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (ord.expiresIn <= 30) Color.Red else Color(0xFF922B21))
+                    Text("${ord.avatar} ${ord.emoji} L${ord.level}", fontSize = 15.sp, maxLines = 1)
+                    Text("+${ord.coins} 🪙 +1 ⭐", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = ACCENT, maxLines = 1)
+                    Text("⏰ ${ord.expiresIn}s", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (ord.expiresIn <= 30) Color.Red else Color(0xFF922B21), maxLines = 1)
                 }
             }
         }
-        // Banner
+        Text("Tap an order, then tap the matching item. Tap 2 same items to merge!", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B4C35), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Banner, one line
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(
                     when (game.bannerKind) {
                         "warning" -> Color(0xFFFFE5E2)
@@ -290,13 +259,14 @@ fun BoardTab(game: Game) {
                         else -> Color(0xFFFFF9F0)
                     }
                 )
-                .padding(8.dp),
+                .padding(vertical = 4.dp, horizontal = 6.dp),
             contentAlignment = Alignment.Center
-        ) { Text(game.banner, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
-        // Board
+        ) { Text(game.banner, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        // THE BOARD: big square tiles, fills the width, first thing you see
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .aspectRatio(1.2f)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color(0xFFA87653))
                 .border(3.dp, Color(0xFF8A5A36), RoundedCornerShape(20.dp))
@@ -308,7 +278,7 @@ fun BoardTab(game: Game) {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (row in 0 until 5) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
                         for (col in 0 until 6) {
                             val idx = row * 6 + col
                             val cell = game.board[idx]
@@ -317,7 +287,7 @@ fun BoardTab(game: Game) {
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .size(52.dp)
+                                    .aspectRatio(1f)
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(
                                         when {
@@ -383,9 +353,9 @@ fun BoardTab(game: Game) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 when (cell) {
-                                    is Cell.Generator -> Text(cell.chain.crateEmoji, fontSize = 26.sp)
+                                    is Cell.Generator -> Text(cell.chain.crateEmoji, fontSize = 30.sp)
                                     is Cell.Item -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(cell.chain.emoji(cell.level), fontSize = 28.sp)
+                                        Text(cell.chain.emoji(cell.level), fontSize = 30.sp)
                                         Text("L${cell.level}", fontSize = 9.sp, fontWeight = FontWeight.Black)
                                     }
                                     is Cell.Empty -> {}
@@ -408,7 +378,7 @@ fun BoardTab(game: Game) {
                 ) { Text(dragEmoji, fontSize = 36.sp) }
             }
         }
-        // Controls
+        // Controls, one compact row
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.weight(1f)) { SmallButton("↩️ Undo (10 🪙)", enabled = game.lastSnapshot != null && game.coins >= 10) { game.undo() } }
             Box(Modifier.weight(1f)) { SmallButton("⚡ +20 (50 🪙)") { game.buyEnergy() } }
@@ -419,6 +389,7 @@ fun BoardTab(game: Game) {
             Box(Modifier.weight(1f)) { SmallButton("🎁 Free Gift") { game.claimGift() } }
             Box(Modifier.weight(1f)) { SmallButton("✂️ Scissors (30 🪙)") { game.buyScissors() } }
             Box(Modifier.weight(1f)) { SmallButton("✨ 2x x5 (50 🪙)") { game.buyDouble() } }
+            Box(Modifier.weight(1f)) { SmallButton("🆕 New Game") { game.newGame() } }
         }
         if (game.scissorMode) Text("✂️ Scissors ready — tap any item to remove it.", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ACCENT)
         if (game.doubleMergesLeft > 0) Text("✨ 2x Coins ON — ${game.doubleMergesLeft} merges left!", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ACCENT)
@@ -447,6 +418,21 @@ fun StallCard(icon: String, title: String, unlocked: Boolean, status: String) {
 @Composable
 fun QuestsTab(game: Game) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Story lives here now, not above the board
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFFFFF8E1))
+                .border(2.dp, Color(0xFFE6A817), RoundedCornerShape(14.dp))
+                .padding(10.dp)
+        ) {
+            Text("🎪 Maya's Bazaar — ${game.storyText()}", fontSize = 12.sp, lineHeight = 16.sp)
+        }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.weight(1f)) { StallCard("🥐🍎", "Bakery Stall", game.stars >= 3, "Unlocks at 3 ⭐ (${game.stars}/3)") }
+            Box(Modifier.weight(1f)) { StallCard("💐👑", "Flower & Gold", game.stars >= 6, "Unlocks at 6 ⭐ (${game.stars}/6)") }
+        }
         Text("🎯 Today's Missions", fontSize = 16.sp, fontWeight = FontWeight.Black)
         MissionRow("Merge 10 times today", game.mergesToday, 10, 40, "merge10", game)
         MissionRow("Serve 3 customers today", game.servesToday, 3, 50, "serve3", game)
