@@ -106,12 +106,12 @@ val STALLS = listOf(
 )
 
 val STORY = listOf(
-    0 to "Chapter 1: Maya's bazaar is empty and dusty. "Help me bring it back to life! Serve customers and earn stars to rebuild it."",
-    3 to "Chapter 2: The Bakery Stall is open! "Fresh bread smells amazing... but who broke my favourite vase? Find out next!"",
-    6 to "Chapter 3: The Flower & Gold Stall sparkles! "A mysterious customer in a golden mask left a note: meet me at the Night Bazaar..."",
-    9 to "Chapter 4: The Grand Arch is up! "The masked customer is my old rival Ravi! He wants a merge contest. Beat him in this week's Race!"",
-    12 to "Chapter 5: The Fountain flows! "Ravi and I are friends again. Together we will open the Night Bazaar. Keep going!"",
-    15 to "Chapter 6: Festival Lights shine! "The bazaar is alive again, thanks to you. You are the true Bazaar Master!""
+    0 to "Chapter 1: Maya's bazaar is empty and dusty. \"Help me bring it back to life! Serve customers and earn stars to rebuild it.\"",
+    3 to "Chapter 2: The Bakery Stall is open! \"Fresh bread smells amazing... but who broke my favourite vase? Find out next!\"",
+    6 to "Chapter 3: The Flower & Gold Stall sparkles! \"A mysterious customer in a golden mask left a note: meet me at the Night Bazaar...\"",
+    9 to "Chapter 4: The Grand Arch is up! \"The masked customer is my old rival Ravi! He wants a merge contest. Beat him in this week's Race!\"",
+    12 to "Chapter 5: The Fountain flows! \"Ravi and I are friends again. Together we will open the Night Bazaar. Keep going!\"",
+    15 to "Chapter 6: Festival Lights shine! \"The bazaar is alive again, thanks to you. You are the true Bazaar Master!\""
 )
 
 fun eventActive(): Boolean {
