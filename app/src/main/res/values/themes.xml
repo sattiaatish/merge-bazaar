@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.MergeBazaar" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.MergeBazaar" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowFullscreen">false</item>
         <item name="android:statusBarColor">#FFF6E9</item>
     </style>
