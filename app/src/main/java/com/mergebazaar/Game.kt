@@ -96,7 +96,7 @@ class Game(private val prefs: SharedPreferences) {
     var lastMergeTime by mutableStateOf(0L)
     var lastSnapshot by mutableStateOf<Snapshot?>(null)
     var mergeFx by mutableStateOf<Pair<Int, Int>?>(null) // cell index to coin gain
-    var level: Int get() = stars / 3 + 1
+    val level: Int get() = stars / 3 + 1
 
     data class Snapshot(val board: List<Cell>, val coins: Int, val score: Int, val stars: Int, val energy: Int, val orders: List<Order>)
 
