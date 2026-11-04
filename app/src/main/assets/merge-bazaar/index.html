@@ -1,0 +1,2327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merge Bazaar</title>
+  <style>
+    :root {
+      --bg-top: #ffecd2;
+      --bg-bottom: #fcb69f;
+      --panel-bg: rgba(255, 252, 245, 0.94);
+      --border-color: #e6ccb2;
+      --accent-color: #ff7e36;
+      --accent-dark: #d9531e;
+      --highlight-color: #2ecc71;
+      --order-selected: #3498db;
+      --cell-empty: #e8d5b7;
+      --text-color: #3d2c24;
+      --danger-color: #e74c3c;
+      --gold-glow: #ffd700;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 14px 10px 28px;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #fff6e9 0%, #fde2c4 55%, #f7c59f 100%);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 550px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      position: relative;
+    }
+
+    /* Screen Shake for Big Merges */
+    .container.screen-shake {
+      animation: screenShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      15% { transform: translate3d(-5px, 3px, 0) rotate(-0.6deg); }
+      30% { transform: translate3d(5px, -3px, 0) rotate(0.6deg); }
+      45% { transform: translate3d(-4px, -2px, 0) rotate(-0.4deg); }
+      60% { transform: translate3d(4px, 2px, 0) rotate(0.4deg); }
+      75% { transform: translate3d(-2px, 1px, 0); }
+    }
+
+    /* Premium Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, #fffdf9 0%, #ffefd6 100%);
+      border: 2px solid #f2cba0;
+      border-radius: 18px;
+      padding: 10px 16px;
+      box-shadow: 0 6px 16px rgba(141, 85, 36, 0.12), inset 0 2px 0 #ffffff;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.48rem;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+      background: linear-gradient(180deg, #e65c00 0%, #b83700 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.9));
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    h1 .title-icon {
+      -webkit-text-fill-color: initial;
+      font-size: 1.55rem;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
+      animation: idleBob 3s ease-in-out infinite;
+    }
+
+    /* Bigger Rounded Buttons with Smooth Transitions & Pressed States */
+    .btn-reset {
+      background: linear-gradient(180deg, #ff944d 0%, #e65c00 100%);
+      color: #fff;
+      border: 2px solid #fff3e6;
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #b34700, 0 6px 12px rgba(230, 92, 0, 0.3);
+      transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.14s ease, filter 0.15s ease;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn-reset:hover {
+      filter: brightness(1.06);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #b34700, 0 8px 16px rgba(230, 92, 0, 0.38);
+    }
+
+    .btn-reset:active {
+      transform: translateY(3px) scale(0.97);
+      box-shadow: 0 1px 0 #b34700, 0 2px 5px rgba(230, 92, 0, 0.25);
+    }
+
+    .how-to-play {
+      background: var(--panel-bg);
+      border: 2px solid #edd6bb;
+      border-radius: 16px;
+      padding: 9px 14px;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      box-shadow: 0 4px 10px rgba(141, 85, 36, 0.07), inset 0 1px 0 #fff;
+    }
+
+    .how-to-play strong {
+      color: var(--accent-dark);
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      background: linear-gradient(180deg, #fffcf7 0%, #f9ecdc 100%);
+      border: 2px solid #e8cbb1;
+      border-radius: 18px;
+      padding: 8px;
+      text-align: center;
+      box-shadow: 0 5px 14px rgba(141, 85, 36, 0.1), inset 0 2px 0 #fff;
+    }
+
+    .stat-box {
+      background: linear-gradient(180deg, #ffffff 0%, #f6e7d5 100%);
+      border: 1px solid #e6cfb8;
+      border-radius: 13px;
+      padding: 6px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), inset 0 1px 0 #fff;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .stat-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #7d5a44;
+    }
+
+    .stat-value {
+      font-size: 1.08rem;
+      font-weight: 900;
+      color: #3a2314;
+      margin-top: 1px;
+    }
+
+    .timer-sub {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--accent-dark);
+      min-height: 0.9em;
+    }
+
+    /* Bazaar Stalls */
+    .bazaar-stalls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stall-card {
+      background: linear-gradient(135deg, #fdf8f2 0%, #f2e5d5 100%);
+      border: 2px dashed #cdb499;
+      border-radius: 16px;
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.84rem;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      opacity: 0.82;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .stall-card.unlocked {
+      background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+      border: 2px solid #38a169;
+      opacity: 1;
+      box-shadow: 0 5px 14px rgba(46, 204, 113, 0.22), inset 0 1px 0 #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .stall-icon {
+      font-size: 1.8rem;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.14));
+      animation: idleBob 3.2s ease-in-out infinite;
+    }
+
+    .stall-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stall-title {
+      font-weight: 800;
+      color: #3b2618;
+    }
+
+    .stall-status {
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: #7c6755;
+    }
+
+    .stall-card.unlocked .stall-status {
+      color: #22863a;
+      font-weight: 800;
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #6b4c35;
+      margin-bottom: -4px;
+      padding-left: 6px;
+    }
+
+    /* Customer Orders Bar */
+    .orders-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .order-card {
+      background: linear-gradient(180deg, #ffffff 0%, #f8ede0 100%);
+      border: 2px solid #dfbe9f;
+      border-radius: 18px;
+      padding: 9px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 5px 0 #d5b290, 0 6px 12px rgba(141, 85, 36, 0.1);
+      transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, box-shadow 0.16s ease, background 0.18s ease;
+    }
+
+    .order-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 0 #d5b290, 0 10px 18px rgba(141, 85, 36, 0.16);
+    }
+
+    .order-card:active {
+      transform: translateY(3px) scale(0.97);
+      box-shadow: 0 2px 0 #d5b290, 0 3px 6px rgba(141, 85, 36, 0.1);
+    }
+
+    .order-card.selected {
+      border-color: #2980b9;
+      background: linear-gradient(180deg, #ebf8ff 0%, #d4eeff 100%);
+      box-shadow: 0 5px 0 #2980b9, 0 0 0 4px rgba(52, 152, 219, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .order-card.ready-match {
+      border-color: #27ae60;
+      background: linear-gradient(180deg, #f2fff6 0%, #dcfce7 100%);
+      box-shadow: 0 5px 0 #27ae60, 0 6px 14px rgba(46, 204, 113, 0.25);
+    }
+
+    .order-card.ready-match::after {
+      content: 'READY!';
+      position: absolute;
+      top: -8px;
+      right: -4px;
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: #fff;
+      font-size: 0.58rem;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1.5px solid #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      animation: idlePulse 1.4s ease-in-out infinite;
+    }
+
+    .customer-avatar {
+      font-size: 1.45rem;
+      margin-bottom: 2px;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.12));
+      animation: idleBob 2.8s ease-in-out infinite;
+    }
+
+    .order-want {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(235, 213, 190, 0.55);
+      padding: 4px 10px;
+      border-radius: 12px;
+      margin: 3px 0;
+      border: 1px solid rgba(196, 164, 132, 0.45);
+    }
+
+    .order-emoji {
+      font-size: 1.65rem;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.15));
+      animation: idlePulse 2.4s ease-in-out infinite;
+    }
+
+    .order-lvl {
+      font-size: 0.74rem;
+      font-weight: 800;
+      background: linear-gradient(180deg, #ffffff 0%, #f1e4d3 100%);
+      color: #4a3525;
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid #d4b89b;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .order-name {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-align: center;
+      margin: 2px 0 1px;
+      color: #3d281a;
+    }
+
+    .order-reward {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #c85000;
+      background: rgba(255, 215, 0, 0.22);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-top: 2px;
+    }
+
+    /* Status Banner */
+    .status-banner {
+      min-height: 34px;
+      border-radius: 14px;
+      padding: 6px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #fff9f0 0%, #f5e6d3 100%);
+      border: 2px solid #dfbe9f;
+      box-shadow: 0 3px 8px rgba(141, 85, 36, 0.08);
+      transition: all 0.2s ease;
+    }
+
+    .status-banner.warning {
+      background: linear-gradient(180deg, #ffe5e2 0%, #fadbd8 100%);
+      color: #922b21;
+      border-color: var(--danger-color);
+      animation: pulse 1.2s infinite;
+    }
+
+    .status-banner.info {
+      background: linear-gradient(180deg, #e8f6ff 0%, #d0ebff 100%);
+      color: #16496d;
+      border-color: var(--order-selected);
+    }
+
+    .status-banner.success {
+      background: linear-gradient(180deg, #e8fcef 0%, #ccf5dc 100%);
+      color: #146334;
+      border-color: var(--highlight-color);
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.018); }
+    }
+
+    /* Board Container & 6x5 Grid */
+    .board-container {
+      background: linear-gradient(180deg, #c89d7c 0%, #a87653 100%);
+      padding: 11px;
+      border-radius: 24px;
+      border: 4px solid #8a5a36;
+      box-shadow:
+        0 12px 24px rgba(92, 53, 24, 0.28),
+        inset 0 3px 6px rgba(0, 0, 0, 0.25),
+        inset 0 -2px 4px rgba(255, 255, 255, 0.2);
+      position: relative;
+    }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 8px;
+      position: relative;
+    }
+
+    /* Soft Rounded Tiles & Level Gradients */
+    .cell {
+      aspect-ratio: 1 / 1;
+      touch-action: none;
+      background: radial-gradient(circle at 50% 35%, #f4e6ce 0%, #dec7a4 100%);
+      border: 2.5px solid #c3a67d;
+      border-radius: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: visible;
+      box-shadow: inset 0 3px 5px rgba(110, 75, 38, 0.18), 0 1px 0 rgba(255, 255, 255, 0.45);
+      transition:
+        transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.18s ease,
+        border-color 0.18s ease,
+        filter 0.16s ease;
+    }
+
+    .cell:hover {
+      transform: translateY(-3px) scale(1.03);
+      filter: brightness(1.04);
+      z-index: 4;
+    }
+
+    .cell:active {
+      transform: translateY(2px) scale(0.92) !important;
+    }
+
+    /* Drag and drop */
+    .cell.dragging { opacity: 0.45; transform: scale(0.94); }
+    .cell.drag-over {
+      border-color: #ffffff !important;
+      box-shadow: 0 0 0 4px #ff7e36, 0 0 18px rgba(255, 126, 54, 0.7) !important;
+      transform: translateY(-3px) scale(1.06);
+      z-index: 6;
+    }
+    .drag-ghost {
+      position: fixed;
+      z-index: 999;
+      font-size: 3rem;
+      line-height: 1;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(1.15);
+      filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35));
+    }
+
+    /* Tile Inner Wrap for Shine Sweep Clipping while keeping badges/particles sharp */
+    .tile-surface {
+      position: absolute;
+      inset: 0;
+      border-radius: 15px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    /* Subtle Shine Sweep across active items & crates */
+    .cell.has-item .tile-surface::after,
+    .cell.generator .tile-surface::after {
+      content: '';
+      position: absolute;
+      top: -60%;
+      left: -130%;
+      width: 65%;
+      height: 220%;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.42) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(28deg);
+      animation: shineSweep 4.5s ease-in-out infinite;
+      animation-delay: var(--shine-delay, 0s);
+    }
+
+    @keyframes shineSweep {
+      0%, 62% { left: -130%; opacity: 0; }
+      68% { opacity: 1; }
+      88% { left: 160%; opacity: 1; }
+      100% { left: 160%; opacity: 0; }
+    }
+
+    /* Level-Specific Rich Gradient Backgrounds & Soft Glows */
+    .cell.has-item {
+      border-width: 2.5px;
+    }
+
+    .cell.has-item.level-1 {
+      background: radial-gradient(circle at 50% 28%, #ffffff 0%, #fff4cc 58%, #fde08d 100%);
+      border-color: #e2b94b;
+      box-shadow: 0 4px 0 #c4992b, 0 6px 10px rgba(0, 0, 0, 0.14), inset 0 2px 0 #ffffff;
+    }
+
+    .cell.has-item.level-2 {
+      background: radial-gradient(circle at 50% 28%, #ffffff 0%, #d8f8e1 55%, #8ce9a8 100%);
+      border-color: #48bb78;
+      box-shadow: 0 4px 0 #2f855a, 0 6px 12px rgba(56, 161, 105, 0.22), inset 0 2px 0 #ffffff;
+    }
+
+    .cell.has-item.level-3 {
+      background: radial-gradient(circle at 50% 28%, #ffffff 0%, #d4f0ff 52%, #7cc8ff 100%);
+      border-color: #3182ce;
+      box-shadow: 0 4px 0 #2b6cb0, 0 6px 14px rgba(49, 130, 206, 0.28), inset 0 2px 0 #ffffff;
+    }
+
+    .cell.has-item.level-4 {
+      background: radial-gradient(circle at 50% 28%, #ffffff 0%, #f3ddff 48%, #c58aff 100%);
+      border-color: #805ad5;
+      box-shadow: 0 4px 0 #553c9a, 0 0 15px rgba(159, 122, 234, 0.45), inset 0 2px 0 #ffffff;
+    }
+
+    .cell.has-item.level-5 {
+      background: radial-gradient(circle at 50% 28%, #fffef2 0%, #ffea85 45%, #ff9f1c 100%);
+      border-color: #ffd700;
+      box-shadow: 0 4px 0 #b76e00, 0 0 20px rgba(255, 215, 0, 0.72), inset 0 2px 2px #ffffff;
+    }
+
+    .cell.has-item.level-6 {
+      background: radial-gradient(circle at 50% 28%, #ffffff 0%, #ffe9f3 45%, #ff6fb5 100%);
+      border-color: #ff4d9d;
+      box-shadow: 0 4px 0 #a11d5e, 0 0 22px rgba(255, 77, 157, 0.6), inset 0 2px 2px #ffffff;
+    }
+
+    .cell.has-item.level-7 {
+      background: radial-gradient(circle at 50% 28%, #ffffff 0%, #e0f7ff 40%, #00c2ff 100%);
+      border-color: #00a8e8;
+      box-shadow: 0 4px 0 #005f8a, 0 0 26px rgba(0, 194, 255, 0.75), inset 0 2px 2px #ffffff;
+    }
+
+    /* Level bar + controls bar (v1) */
+    .level-bar {
+      background: var(--panel-bg);
+      border: 2px solid #e6ccb2;
+      border-radius: 16px;
+      padding: 9px 13px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(141, 85, 36, 0.08);
+    }
+    .level-track {
+      height: 10px;
+      background: #ecdcc6;
+      border-radius: 999px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .level-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ffb347, #ff7e36, #ffd700);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+    .controls-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-small {
+      flex: 1;
+      min-width: 100px;
+      background: linear-gradient(180deg, #ffffff 0%, #f6e7d5 100%);
+      border: 2px solid #dfbe9f;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #3d2c24;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #c9a67c;
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+    }
+    .btn-small:active { transform: translateY(2px) scale(0.97); box-shadow: 0 1px 0 #c9a67c; }
+    .btn-small:disabled { opacity: 0.45; cursor: default; }
+    .missions {
+      background: var(--panel-bg);
+      border: 2px solid #e6ccb2;
+      border-radius: 16px;
+      padding: 9px 13px;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      box-shadow: 0 4px 10px rgba(141, 85, 36, 0.08);
+    }
+    .mission-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mission-text { flex: 1; font-weight: 700; }
+    .mission-progress { font-weight: 800; color: #c85000; white-space: nowrap; }
+    .btn-claim {
+      background: linear-gradient(180deg, #7be495 0%, #27ae60 100%);
+      color: #fff;
+      border: 2px solid #fff;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #1e8449;
+    }
+    .btn-claim:disabled { opacity: 0.45; box-shadow: none; cursor: default; }
+    .order-timer {
+      font-size: 0.68rem;
+      font-weight: 900;
+      color: #922b21;
+      background: rgba(255, 215, 0, 0.3);
+      padding: 1px 7px;
+      border-radius: 999px;
+      margin-top: 2px;
+    }
+    .order-timer.urgent { background: #ff6b6b; color: #fff; animation: pulse 0.8s infinite; }
+    /* Story + renovation, pass, collections, event, leaderboard (v3) */
+    .story-card {
+      background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%);
+      border: 2px solid #e6a817;
+      border-radius: 16px;
+      padding: 11px 13px;
+      font-size: 0.84rem;
+      line-height: 1.5;
+      box-shadow: 0 4px 12px rgba(230, 168, 23, 0.18);
+    }
+    .story-card .story-name { font-weight: 900; color: #7c4a03; }
+    .event-banner {
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: #fff;
+      border-radius: 16px;
+      padding: 10px 13px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(255, 65, 108, 0.3);
+    }
+    .event-banner.off {
+      background: linear-gradient(135deg, #ececec 0%, #d5d5d5 100%);
+      color: #555;
+      box-shadow: none;
+      font-weight: 700;
+    }
+    .pass-track { display: flex; gap: 6px; }
+    .pass-tier {
+      flex: 1;
+      background: #fff;
+      border: 2px solid #dfbe9f;
+      border-radius: 12px;
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+    }
+    .pass-tier.reached { border-color: #27ae60; background: #e8fcef; }
+    .pass-tier.claimed { border-color: #27ae60; background: #27ae60; color: #fff; }
+    .pass-tier button {
+      margin-top: 4px;
+      background: #ff7e36; color: #fff; border: none; border-radius: 999px;
+      padding: 3px 8px; font-size: 0.68rem; font-weight: 900; cursor: pointer;
+    }
+    .collection-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .collection-cell {
+      aspect-ratio: 1;
+      background: #f0e6d2;
+      border: 2px solid #d8c3a5;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem; filter: grayscale(1); opacity: 0.45;
+    }
+    .collection-cell.got { filter: none; opacity: 1; background: #fff8e1; border-color: #e6a817; box-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+    .leaderboard-row { display: flex; justify-content: space-between; padding: 3px 2px; font-size: 0.82rem; font-weight: 700; }
+    .leaderboard-row.me { background: #ffe0b2; border-radius: 8px; padding: 3px 8px; }
+
+    /* Generator Crate Styling */
+    .cell.generator {
+      background: radial-gradient(circle at 50% 28%, #ffd19c 0%, #e08e45 62%, #b55d19 100%);
+      border-color: #ffe0b5;
+      box-shadow: 0 5px 0 #753709, 0 7px 14px rgba(0, 0, 0, 0.26), inset 0 2px 2px rgba(255, 255, 255, 0.6);
+      color: #fff;
+    }
+
+    .cell.generator.craft-gen {
+      background: radial-gradient(circle at 50% 28%, #ffc8dd 0%, #d96b98 62%, #9c3563 100%);
+      border-color: #ffe3ee;
+      box-shadow: 0 5px 0 #661c3d, 0 7px 14px rgba(0, 0, 0, 0.26), inset 0 2px 2px rgba(255, 255, 255, 0.6);
+    }
+
+    .cell.generator.toy-gen {
+      background: radial-gradient(circle at 50% 28%, #c8b6ff 0%, #7c5cbf 62%, #4a2d8a 100%);
+      border-color: #e6ddff;
+      box-shadow: 0 5px 0 #2e1a5e, 0 7px 14px rgba(0, 0, 0, 0.26), inset 0 2px 2px rgba(255, 255, 255, 0.6);
+    }
+
+    /* Selected & Serve-Target Highlight States */
+    .cell.selected-item {
+      border-color: #ffffff !important;
+      box-shadow:
+        0 5px 0 #1e8449,
+        0 0 0 4px #2ecc71,
+        0 0 18px rgba(46, 204, 113, 0.75) !important;
+      transform: translateY(-4px) scale(1.05);
+      z-index: 6;
+    }
+
+    .cell.serve-target {
+      border-color: #ffffff !important;
+      box-shadow:
+        0 5px 0 #1f618d,
+        0 0 0 4px #3498db,
+        0 0 18px rgba(52, 152, 219, 0.8) !important;
+      animation: targetBounce 1.1s ease-in-out infinite;
+      z-index: 5;
+    }
+
+    @keyframes targetBounce {
+      0%, 100% { transform: translateY(-2px) scale(1.02); }
+      50% { transform: translateY(-6px) scale(1.07); }
+    }
+
+    /* 1) MUCH BIGGER Emojis - Almost Filling Each Tile + Soft Glow/Shadow */
+    .item-emoji {
+      font-size: clamp(2.15rem, 8.2vw, 2.85rem);
+      line-height: 1;
+      display: inline-block;
+      position: relative;
+      z-index: 2;
+      filter: drop-shadow(0 4px 5px rgba(60, 30, 10, 0.28));
+      transform-origin: center center;
+      will-change: transform;
+      margin-top: -3px;
+    }
+
+    .cell.level-4 .item-emoji {
+      filter: drop-shadow(0 4px 6px rgba(85, 60, 154, 0.35)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+    }
+
+    .cell.level-5 .item-emoji {
+      filter: drop-shadow(0 4px 6px rgba(140, 70, 0, 0.4)) drop-shadow(0 0 12px rgba(255, 230, 100, 0.95));
+    }
+
+    /* 2) Continuous Idle Animations (Bob, Pulse, Wiggle) on independent timers */
+    .idle-bob {
+      animation: idleBob var(--idle-dur, 2.4s) ease-in-out infinite;
+      animation-delay: var(--idle-delay, 0s);
+    }
+
+    .idle-pulse {
+      animation: idlePulse var(--idle-dur, 2.2s) ease-in-out infinite;
+      animation-delay: var(--idle-delay, 0s);
+    }
+
+    .idle-wiggle {
+      animation: idleWiggle var(--idle-dur, 2.8s) ease-in-out infinite;
+      animation-delay: var(--idle-delay, 0s);
+    }
+
+    @keyframes idleBob {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-5px) scale(1.05); }
+    }
+
+    @keyframes idlePulse {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.1) rotate(3deg); }
+    }
+
+    @keyframes idleWiggle {
+      0%, 100% { transform: rotate(0deg) translateY(0px) scale(1); }
+      25% { transform: rotate(-7deg) translateY(-3px) scale(1.05); }
+      75% { transform: rotate(7deg) translateY(-2px) scale(1.05); }
+    }
+
+    /* Ambient Sparkles on Higher-Level Items (L3, L4, L5) */
+    .ambient-sparkle {
+      position: absolute;
+      pointer-events: none;
+      z-index: 3;
+      font-size: 0.78rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 4px #fff);
+      animation: twinkleSparkle 1.8s ease-in-out infinite;
+    }
+
+    .ambient-sparkle.s1 {
+      top: 4px;
+      left: 5px;
+      animation-delay: var(--idle-delay, 0s);
+    }
+
+    .ambient-sparkle.s2 {
+      top: 5px;
+      right: 5px;
+      font-size: 0.68rem;
+      animation-delay: calc(var(--idle-delay, 0s) + 0.75s);
+    }
+
+    .ambient-sparkle.s3 {
+      bottom: 16px;
+      left: 6px;
+      font-size: 0.65rem;
+      animation-delay: calc(var(--idle-delay, 0s) + 1.25s);
+    }
+
+    @keyframes twinkleSparkle {
+      0%, 100% { transform: scale(0.3) rotate(0deg); opacity: 0.2; }
+      50% { transform: scale(1.18) rotate(45deg); opacity: 1; }
+    }
+
+    /* Crisp Pill Level Badge & Generator Badge */
+    .item-badge {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      z-index: 4;
+      font-size: 0.66rem;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      background: linear-gradient(180deg, #ffffff 0%, #f3e5d0 100%);
+      color: #3d2516;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1.5px solid #b89466;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.22);
+    }
+
+    .cell.level-3 .item-badge {
+      background: linear-gradient(180deg, #ebf8ff 0%, #bee3f8 100%);
+      border-color: #2b6cb0;
+      color: #1a365d;
+    }
+
+    .cell.level-4 .item-badge {
+      background: linear-gradient(180deg, #faf5ff 0%, #e9d8fd 100%);
+      border-color: #6b46c1;
+      color: #44337a;
+    }
+
+    .cell.level-5 .item-badge {
+      background: linear-gradient(180deg, #fffaf0 0%, #ffd700 100%);
+      border-color: #b7791f;
+      color: #5f370e;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.9);
+    }
+
+    .generator-badge {
+      position: absolute;
+      bottom: 3px;
+      z-index: 4;
+      font-size: 0.58rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      background: linear-gradient(180deg, #3d2210 0%, #1f1006 100%);
+      color: #ffe8cc;
+      padding: 1.5px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      text-transform: uppercase;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    /* 3) Premium Merge Pop, Spawn Pop, Golden Ring Burst, Sparkles & Float-Up Coins */
+    .cell.merge-pop {
+      animation: mergePop 0.52s cubic-bezier(0.22, 1.45, 0.36, 1) forwards;
+      z-index: 10;
+    }
+
+    .cell.spawn-pop {
+      animation: spawnPop 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      z-index: 8;
+    }
+
+    @keyframes mergePop {
+      0% {
+        transform: scale(0.25);
+        filter: brightness(2) drop-shadow(0 0 22px rgba(255, 215, 0, 1));
+      }
+      50% {
+        transform: scale(1.24);
+        filter: brightness(1.35) drop-shadow(0 0 18px rgba(255, 200, 0, 0.95));
+      }
+      75% {
+        transform: scale(0.93);
+      }
+      100% {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes spawnPop {
+      0% { transform: scale(0.2); opacity: 0.3; }
+      70% { transform: scale(1.12); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Golden Ring Burst on Merge */
+    .ring-burst {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 4px solid #ffd700;
+      box-shadow: 0 0 16px #ffae00, inset 0 0 10px #fff3b0;
+      transform: translate(-50%, -50%) scale(0.2);
+      pointer-events: none;
+      z-index: 20;
+      animation: ringExpand 0.58s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes ringExpand {
+      0% {
+        transform: translate(-50%, -50%) scale(0.25);
+        opacity: 1;
+        border-width: 6px;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(3.4);
+        opacity: 0;
+        border-width: 1px;
+      }
+    }
+
+    /* Particle Burst Elements */
+    .burst-particle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      pointer-events: none;
+      z-index: 25;
+      font-size: var(--p-size, 1rem);
+      filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.9));
+      animation: sparkleBurst var(--p-dur, 620ms) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes sparkleBurst {
+      0% {
+        transform: translate(-50%, -50%) scale(0.3) rotate(0deg);
+        opacity: 1;
+      }
+      65% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px))) scale(var(--p-scale, 1.15)) rotate(var(--rot, 160deg));
+        opacity: 0;
+      }
+    }
+
+    /* Floating +Coins / Reward Text */
+    .floating-reward {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 30;
+      font-size: 0.95rem;
+      font-weight: 900;
+      white-space: nowrap;
+      color: #fffef0;
+      text-shadow:
+        0 2px 0 #b35900,
+        0 -1px 0 #b35900,
+        2px 0 0 #b35900,
+        -2px 0 0 #b35900,
+        0 4px 10px rgba(0, 0, 0, 0.35);
+      animation: floatUp 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes floatUp {
+      0% {
+        transform: translate(-50%, 4px) scale(0.6);
+        opacity: 0;
+      }
+      22% {
+        transform: translate(-50%, -10px) scale(1.15);
+        opacity: 1;
+      }
+      80% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -44px) scale(1);
+        opacity: 0;
+      }
+    }
+
+    /* Chain Legend */
+    .chain-legend {
+      background: var(--panel-bg);
+      border: 2px solid #e6ccb2;
+      border-radius: 16px;
+      padding: 9px 13px;
+      font-size: 0.76rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      box-shadow: 0 4px 10px rgba(141, 85, 36, 0.08), inset 0 1px 0 #fff;
+    }
+
+    .chain-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chain-label {
+      font-weight: 800;
+      min-width: 82px;
+      color: #5c3a21;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="gameContainer">
+    <header>
+      <h1><span class="title-icon">🎪</span> Merge Bazaar</h1>
+      <button class="btn-reset" id="resetBtn" title="Restart Prototype">New Game</button>
+    </header>
+
+    <div class="how-to-play">
+      <strong>How to Play:</strong>
+      Tap a <strong>Generator Crate (📦 / 🧺 / 🎁)</strong> to spawn a Level-1 item.
+      <strong>Drag and drop</strong> an item onto another identical item to merge it, or drag it to an empty tile to move it. You can also tap two identical items to merge.
+      To serve a customer: <strong>tap an Order at the top, then tap the matching item</strong> on the board to earn 🪙 Coins &amp; ⭐ 1 Star! Unlock stalls at 3 ⭐ and 6 ⭐. 3 stars = 1 Level up (+20 ⚡).
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-box">
+        <span class="stat-label">Score</span>
+        <span class="stat-value" id="scoreVal">0</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">🪙 Coins</span>
+        <span class="stat-value" id="coinsVal">0</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">⭐ Stars</span>
+        <span class="stat-value" id="starsVal">0</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">⚡ Energy</span>
+        <span class="stat-value" id="energyVal">50/50</span>
+        <span class="timer-sub" id="energyTimer">Full</span>
+      </div>
+    </div>
+
+    <div class="story-card" id="storyCard">
+      <span class="story-name">🎪 Maya's Bazaar — </span><span id="storyText"></span>
+    </div>
+
+    <div class="event-banner off" id="eventBanner"></div>
+
+    <div class="level-bar">
+      <span id="levelText">Level 1</span>
+      <span id="streakText" style="float:right">🔥 0 day streak</span>
+      <div class="level-track"><div class="level-fill" id="levelFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="missions" id="missionsBox">
+      <strong>🎯 Today's Missions — finish them, claim coins!</strong>
+      <div id="missionsList"></div>
+    </div>
+
+    <div class="controls-bar">
+      <button class="btn-small" id="undoBtn" title="Undo last merge or serve, costs 10 coins">↩️ Undo (10 🪙)</button>
+      <button class="btn-small" id="buyEnergyBtn" title="Buy 20 energy for 50 coins">⚡ +20 Energy (50 🪙)</button>
+      <button class="btn-small" id="buyItemBtn" title="Buy a random Level 3 item for 100 coins">🎁 L3 Item (100 🪙)</button>
+      <button class="btn-small" id="muteBtn" title="Turn sound on or off">🔊 Sound On</button>
+    </div>
+
+    <div class="missions">
+      <strong>🎟️ Bazaar Pass — earn stars, claim rewards!</strong>
+      <div class="pass-track" id="passTrack"></div>
+    </div>
+
+    <div class="missions">
+      <strong>📖 Collection — make every item once!</strong>
+      <div class="collection-grid" id="collectionGrid"></div>
+      <div id="collectionText" style="font-size:0.75rem;font-weight:700;color:#7c6755"></div>
+    </div>
+
+    <div class="missions">
+      <strong>🏆 This Week's Race — beat the other bazaar owners!</strong>
+      <div id="leaderboardList"></div>
+    </div>
+
+    <div class="controls-bar">
+      <button class="btn-small" id="giftBtn" title="Free gift every 15 minutes">🎁 Free Gift</button>
+      <button class="btn-small" id="scissorsBtn" title="Buy scissors for 30 coins, then tap an item to remove it">✂️ Scissors (30 🪙)</button>
+      <button class="btn-small" id="doubleBtn" title="Buy double coins for your next 5 merges, 50 coins">✨ 2x Coins x5 (50 🪙)</button>
+    </div>
+
+    <div class="bazaar-stalls">
+      <div class="stall-card" id="stall1">
+        <div class="stall-icon" id="stall1Icon">🔒</div>
+        <div class="stall-info">
+          <span class="stall-title">Orchard Bakery Stall</span>
+          <span class="stall-status" id="stall1Status">Unlocks at 3 ⭐</span>
+        </div>
+      </div>
+      <div class="stall-card" id="stall2">
+        <div class="stall-icon" id="stall2Icon">🔒</div>
+        <div class="stall-info">
+          <span class="stall-title">Royal Flower &amp; Gold Stall</span>
+          <span class="stall-status" id="stall2Status">Unlocks at 6 ⭐</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Customer Orders (Tap order, then tap matching item)</div>
+    <div class="orders-bar" id="ordersBar"></div>
+
+    <div class="status-banner" id="statusBanner">
+      Tap a crate (📦 or 🧺) on the board to spawn items!
+    </div>
+
+    <div class="board-container">
+      <div class="board-grid" id="boardGrid"></div>
+    </div>
+
+    <div class="chain-legend">
+      <div class="chain-row">
+        <span class="chain-label">📦 Food Crate:</span>
+        <span>L1 🍎 Apple ➔ L2 🥖 Bread ➔ L3 🥧 Pie ➔ L4 🎂 Feast Cake ➔ L5 👑 Feast Crown ➔ L6 🌟 Golden Feast ➔ L7 🏆 Trophy</span>
+      </div>
+      <div class="chain-row">
+        <span class="chain-label">🧺 Craft Crate:</span>
+        <span>L1 🌸 Flower ➔ L2 💐 Bouquet ➔ L3 🪙 Gold Coin ➔ L4 🏺 Gem Vase ➔ L5 💎 Royal Jewel ➔ L6 🪔 Golden Lamp ➔ L7 🏆 Trophy</span>
+      </div>
+      <div class="chain-row">
+        <span class="chain-label">🎁 Toy Crate:</span>
+        <span>L1 🎈 Balloon ➔ L2 🪁 Kite ➔ L3 🧸 Teddy ➔ L4 🥁 Drum ➔ L5 🤖 Robot ➔ L6 🚀 Rocket ➔ L7 🏆 Trophy</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 5;
+    const COLS = 6;
+    const TOTAL_CELLS = ROWS * COLS;
+    const MAX_ENERGY = 50;
+    const REFILL_SECONDS = 30;
+
+    const CHAINS = {
+      food: {
+        name: 'Food',
+        crateEmoji: '📦',
+        crateLabel: 'Food',
+        levels: [
+          null,
+          { level: 1, emoji: '🍎', name: 'Apple' },
+          { level: 2, emoji: '🥖', name: 'Bread' },
+          { level: 3, emoji: '🥧', name: 'Pie' },
+          { level: 4, emoji: '🎂', name: 'Feast Cake' },
+          { level: 5, emoji: '👑', name: 'Feast Crown' },
+          { level: 6, emoji: '🌟', name: 'Golden Feast' },
+          { level: 7, emoji: '🏆', name: 'Bazaar Trophy' }
+        ]
+      },
+      craft: {
+        name: 'Craft',
+        crateEmoji: '🧺',
+        crateLabel: 'Craft',
+        levels: [
+          null,
+          { level: 1, emoji: '🌸', name: 'Flower' },
+          { level: 2, emoji: '💐', name: 'Bouquet' },
+          { level: 3, emoji: '🪙', name: 'Gold Coin' },
+          { level: 4, emoji: '🏺', name: 'Gem Vase' },
+          { level: 5, emoji: '💎', name: 'Royal Jewel' },
+          { level: 6, emoji: '🪔', name: 'Golden Lamp' },
+          { level: 7, emoji: '🏆', name: 'Bazaar Trophy' }
+        ]
+      },
+      toy: {
+        name: 'Toy',
+        crateEmoji: '🎁',
+        crateLabel: 'Toy',
+        levels: [
+          null,
+          { level: 1, emoji: '🎈', name: 'Balloon' },
+          { level: 2, emoji: '🪁', name: 'Kite' },
+          { level: 3, emoji: '🧸', name: 'Teddy' },
+          { level: 4, emoji: '🥁', name: 'Drum' },
+          { level: 5, emoji: '🤖', name: 'Robot' },
+          { level: 6, emoji: '🚀', name: 'Rocket' },
+          { level: 7, emoji: '🏆', name: 'Bazaar Trophy' }
+        ]
+      }
+    };
+
+    const CUSTOMERS = ['🧑‍🌾', '👵', '🧔', '👩‍🍳', '🤴', '🧙‍♀️'];
+    const IDLE_CLASSES = ['idle-bob', 'idle-pulse', 'idle-wiggle'];
+
+    // Deterministic per-cell idle animation parameters so every item feels alive on its own rhythm
+    const CELL_IDLE_CONFIG = Array.from({ length: TOTAL_CELLS }, (_, idx) => ({
+      animClass: IDLE_CLASSES[idx % IDLE_CLASSES.length],
+      duration: (2.1 + ((idx * 7) % 11) * 0.13).toFixed(2) + 's',
+      delay: (-((idx * 13) % 23) * 0.17).toFixed(2) + 's',
+      shineDelay: (-((idx * 19) % 29) * 0.22).toFixed(2) + 's'
+    }));
+
+    let state = {
+      score: 0,
+      coins: 0,
+      stars: 0,
+      energy: MAX_ENERGY,
+      refillCountdown: REFILL_SECONDS,
+      board: [],
+      orders: [],
+      selectedBoardIndex: null,
+      selectedOrderIndex: null,
+      bannerText: 'Tap a crate (📦, 🧺 or 🎁) on the board to spawn items!',
+      bannerType: 'normal',
+      lastFx: null,
+      muted: false,
+      comboCount: 0,
+      lastMergeTime: 0,
+      lastSnapshot: null,
+      lastBonusDate: '',
+      streak: 0,
+      mergesToday: 0,
+      servesToday: 0,
+      maxLevelToday: 0,
+      totalMerges: 0,
+      totalServes: 0,
+      missionDate: '',
+      missionsClaimed: {},
+      achievements: {},
+      collected: {},
+      passClaimed: {},
+      scissorMode: false,
+      doubleMergesLeft: 0,
+      giftNext: 0,
+      lastSeen: 0
+    };
+
+    const SAVE_KEY = 'merge-bazaar-v1';
+    let audioCtx = null;
+    function playSound(kind) {
+      if (state.muted) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const notes = { spawn: [520], merge: [523, 659, 784], serve: [659, 784, 1046], levelup: [523, 659, 784, 1046] };
+        (notes[kind] || [440]).forEach((f, i) => {
+          const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.type = 'sine'; o.frequency.value = f;
+          g.gain.setValueAtTime(0.12, audioCtx.currentTime + i * 0.07);
+          g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.07 + 0.18);
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start(audioCtx.currentTime + i * 0.07); o.stop(audioCtx.currentTime + i * 0.07 + 0.2);
+        });
+      } catch (e) { /* sound is optional */ }
+    }
+    function takeSnapshot() {
+      state.lastSnapshot = {
+        board: JSON.parse(JSON.stringify(state.board)),
+        coins: state.coins, score: state.score, stars: state.stars, energy: state.energy, orders: JSON.parse(JSON.stringify(state.orders))
+      };
+    }
+    function saveGame() {
+      try {
+        const s = { score: state.score, coins: state.coins, stars: state.stars, energy: state.energy, board: state.board, orders: state.orders, muted: state.muted, lastBonusDate: state.lastBonusDate, streak: state.streak, mergesToday: state.mergesToday, servesToday: state.servesToday, maxLevelToday: state.maxLevelToday, totalMerges: state.totalMerges, totalServes: state.totalServes, missionDate: state.missionDate, missionsClaimed: state.missionsClaimed, achievements: state.achievements, collected: state.collected, passClaimed: state.passClaimed, doubleMergesLeft: state.doubleMergesLeft, giftNext: state.giftNext, lastSeen: Date.now() };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(s));
+      } catch (e) { /* save is optional */ }
+    }
+    function loadGame() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        if (!s || !Array.isArray(s.board) || !Array.isArray(s.orders)) return false;
+        state.score = s.score || 0; state.coins = s.coins || 0; state.stars = s.stars || 0;
+        state.energy = (typeof s.energy === 'number') ? s.energy : MAX_ENERGY;
+        state.board = s.board; state.orders = s.orders;
+        state.muted = !!s.muted; state.lastBonusDate = s.lastBonusDate || '';
+        state.streak = s.streak || 0; state.mergesToday = s.mergesToday || 0; state.servesToday = s.servesToday || 0;
+        state.maxLevelToday = s.maxLevelToday || 0; state.totalMerges = s.totalMerges || 0; state.totalServes = s.totalServes || 0;
+        state.missionDate = s.missionDate || ''; state.missionsClaimed = s.missionsClaimed || {}; state.achievements = s.achievements || {};
+        state.collected = s.collected || {}; state.passClaimed = s.passClaimed || {};
+        state.doubleMergesLeft = s.doubleMergesLeft || 0; state.giftNext = s.giftNext || 0; state.lastSeen = s.lastSeen || 0;
+        state.selectedBoardIndex = null; state.selectedOrderIndex = null;
+        return true;
+      } catch (e) { return false; }
+    }
+    function resetDailyCounters() {
+      const today = new Date().toDateString();
+      if (state.missionDate !== today) {
+        state.missionDate = today;
+        state.mergesToday = 0; state.servesToday = 0; state.maxLevelToday = 0; state.missionsClaimed = {};
+      }
+    }
+    function checkDailyBonus() {
+      resetDailyCounters();
+      const today = new Date().toDateString();
+      if (state.lastBonusDate !== today) {
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        state.streak = (state.lastBonusDate === yesterday) ? state.streak + 1 : 1;
+        state.lastBonusDate = today;
+        const bonus = Math.min(30 + (state.streak - 1) * 10, 100);
+        state.coins += bonus;
+        setBanner(`🎁 Daily Bonus! +${bonus} 🪙 Coins. 🔥 ${state.streak} day streak! Come back tomorrow for more!`, 'success');
+        saveGame();
+      }
+    }
+    const MISSIONS = [
+      { id: 'merge10', text: 'Merge 10 times today', target: 10, reward: 40, progress: () => state.mergesToday },
+      { id: 'serve3', text: 'Serve 3 customers today', target: 3, reward: 50, progress: () => state.servesToday },
+      { id: 'level4', text: 'Make a Level 4 item today', target: 4, reward: 60, progress: () => state.maxLevelToday }
+    ];
+    function renderMissions() {
+      const list = document.getElementById('missionsList');
+      if (!list) return;
+      list.innerHTML = '';
+      MISSIONS.forEach(m => {
+        const done = m.progress() >= m.target;
+        const claimed = !!state.missionsClaimed[m.id];
+        const row = document.createElement('div');
+        row.className = 'mission-row';
+        row.innerHTML = `<span class="mission-text">${claimed ? '✅' : done ? '🎉' : '🎯'} ${m.text}</span><span class="mission-progress">${Math.min(m.progress(), m.target)}/${m.target}</span>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn-claim';
+        btn.textContent = claimed ? 'Claimed' : `Claim +${m.reward} 🪙`;
+        btn.disabled = !done || claimed;
+        btn.addEventListener('click', () => {
+          if (state.missionsClaimed[m.id]) return;
+          state.missionsClaimed[m.id] = true;
+          state.coins += m.reward;
+          playSound('levelup');
+          setBanner(`🎉 Mission done! +${m.reward} 🪙 Coins!`, 'success');
+          renderAll();
+        });
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+    }
+    function checkAchievements() {
+      const give = (id, text, reward) => {
+        if (state.achievements[id]) return;
+        state.achievements[id] = true;
+        state.coins += reward;
+        playSound('levelup');
+        setBanner(`🏆 Achievement! ${text} +${reward} 🪙!`, 'success');
+      };
+      if (state.maxLevelToday >= 7 || state.totalMerges > 0 && state.board.some(c => c && c.type === 'item' && c.level >= 7)) give('trophy', 'You made a Bazaar Trophy!', 100);
+      if (state.totalMerges >= 50) give('merge50', '50 merges done!', 50);
+      if (state.totalServes >= 10) give('serve10', '10 customers served!', 50);
+    }
+
+    // Story + renovation: Maya rebuilds her bazaar, one chapter per 3 stars
+    const STORY = [
+      { stars: 0, text: 'Chapter 1: Maya\'s bazaar is empty and dusty. "Help me bring it back to life! Serve customers and earn stars to rebuild it."', build: 'Empty lot — nothing yet' },
+      { stars: 3, text: 'Chapter 2: The Bakery Stall is open! "Fresh bread smells amazing... but who broke my favourite vase? Find out in the next chapter!"', build: '🥐 Bakery Stall rebuilt' },
+      { stars: 6, text: 'Chapter 3: The Flower & Gold Stall sparkles! "A mysterious customer in a golden mask left a note: meet me at the Night Bazaar..."', build: '💐 Flower & Gold Stall rebuilt' },
+      { stars: 9, text: 'Chapter 4: The Grand Arch is up! "The masked customer is... my old rival Ravi! He wants a merge contest. Beat him in this week\'s Race!"', build: '🎪 Grand Bazaar Arch rebuilt' },
+      { stars: 12, text: 'Chapter 5: The Fountain flows! "Ravi and I are friends again. Together we will open the Night Bazaar. Keep going!"', build: '⛲ Bazaar Fountain rebuilt' },
+      { stars: 15, text: 'Chapter 6: Festival Lights shine! "The bazaar is alive again, thanks to you. You are the true Bazaar Master!"', build: '🎆 Festival Lights — Bazaar complete!' }
+    ];
+    function currentStory() {
+      let s = STORY[0];
+      STORY.forEach(ch => { if (state.stars >= ch.stars) s = ch; });
+      return s;
+    }
+    // Live event: Bazaar Rush is live 1 hour in every 4 — orders give double stars
+    function eventActive() {
+      const hour = Math.floor(Date.now() / 3600000);
+      return (hour % 4) === 0;
+    }
+    function eventEndsIn() {
+      const now = Date.now();
+      const nextHour = (Math.floor(now / 3600000) + 1) * 3600000;
+      const mins = Math.max(0, Math.round((nextHour - now) / 60000));
+      return mins;
+    }
+    const PASS_TIERS = [
+      { stars: 3, reward: '+40 🪙', coins: 40, energy: 0 },
+      { stars: 6, reward: '+20 ⚡', coins: 0, energy: 20 },
+      { stars: 9, reward: '+80 🪙', coins: 80, energy: 0 },
+      { stars: 12, reward: '+30 ⚡', coins: 0, energy: 30 },
+      { stars: 15, reward: '+150 🪙', coins: 150, energy: 0 }
+    ];
+    const RACE_BOTS = [
+      { name: 'Ravi', emoji: '🧔', base: 120 },
+      { name: 'Priya', emoji: '👩', base: 100 },
+      { name: 'Arjun', emoji: '🧑', base: 80 },
+      { name: 'Meera', emoji: '👵', base: 60 }
+    ];
+    function raceScores() {
+      // Bots slowly gain score over the week, so the race feels alive
+      const week = Math.floor(Date.now() / 604800000);
+      const rows = RACE_BOTS.map((b, i) => ({
+        name: b.name, emoji: b.emoji,
+        score: b.base + ((week * 37 + i * 53) % 90) + Math.floor(state.totalServes / 2)
+      }));
+      rows.push({ name: 'You', emoji: '🎪', score: state.score, me: true });
+      rows.sort((a, b) => b.score - a.score);
+      return rows;
+    }
+
+    function triggerScreenShake() {
+      const container = document.getElementById('gameContainer');
+      if (!container) return;
+      container.classList.remove('screen-shake');
+      void container.offsetWidth;
+      container.classList.add('screen-shake');
+    }
+
+    function spawnParticleBurst(cellEl, options = {}) {
+      if (!cellEl) return;
+      const {
+        count = 10,
+        floatText = '',
+        showRing = true,
+        isBig = false
+      } = options;
+
+      if (showRing) {
+        const ring = document.createElement('div');
+        ring.className = 'ring-burst';
+        cellEl.appendChild(ring);
+        setTimeout(() => ring.remove(), 650);
+      }
+
+      if (floatText) {
+        const floatEl = document.createElement('div');
+        floatEl.className = 'floating-reward';
+        floatEl.textContent = floatText;
+        cellEl.appendChild(floatEl);
+        setTimeout(() => floatEl.remove(), 1000);
+      }
+
+      const symbols = isBig
+        ? ['✨', '⭐', '🌟', '💫', '🪙']
+        : ['✨', '⭐', '💫'];
+
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('span');
+        p.className = 'burst-particle';
+        p.textContent = symbols[i % symbols.length];
+
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.45;
+        const dist = (isBig ? 42 : 30) + Math.random() * (isBig ? 28 : 18);
+        const tx = Math.cos(angle) * dist;
+        const ty = Math.sin(angle) * dist;
+        const rot = Math.round((Math.random() - 0.5) * 260) + 'deg';
+        const dur = Math.round(480 + Math.random() * 260) + 'ms';
+        const size = (0.78 + Math.random() * 0.45).toFixed(2) + 'rem';
+
+        p.style.setProperty('--tx', `${tx.toFixed(1)}px`);
+        p.style.setProperty('--ty', `${ty.toFixed(1)}px`);
+        p.style.setProperty('--rot', rot);
+        p.style.setProperty('--p-dur', dur);
+        p.style.setProperty('--p-size', size);
+
+        cellEl.appendChild(p);
+        setTimeout(() => p.remove(), 800);
+      }
+    }
+
+    function initGame() {
+      state.score = 0;
+      state.coins = 0;
+      state.stars = 0;
+      state.totalMerges = 0;
+      state.totalServes = 0;
+      state.mergesToday = 0;
+      state.servesToday = 0;
+      state.maxLevelToday = 0;
+      state.achievements = {};
+      state.missionsClaimed = {};
+      state.collected = {};
+      state.passClaimed = {};
+      state.doubleMergesLeft = 0;
+      state.scissorMode = false;
+      state.comboCount = 0;
+      state.energy = MAX_ENERGY;
+      state.refillCountdown = REFILL_SECONDS;
+      state.board = new Array(TOTAL_CELLS).fill(null);
+      state.selectedBoardIndex = null;
+      state.selectedOrderIndex = null;
+      state.lastFx = null;
+
+      // Place three generator crates
+      state.board[0] = { type: 'generator', chain: 'food' };
+      state.board[6] = { type: 'generator', chain: 'craft' };
+      state.board[12] = { type: 'generator', chain: 'toy' };
+
+      // Spawn a few starter items so the player can immediately merge or see how it works
+      state.board[1] = { type: 'item', chain: 'food', level: 1 };
+      state.board[2] = { type: 'item', chain: 'food', level: 1 };
+      state.board[7] = { type: 'item', chain: 'craft', level: 1 };
+      state.board[8] = { type: 'item', chain: 'craft', level: 1 };
+      state.board[13] = { type: 'item', chain: 'toy', level: 1 };
+      state.board[14] = { type: 'item', chain: 'toy', level: 1 };
+
+      state.orders = [
+        createOrder(1, 2),
+        createOrder(2, 3),
+        createOrder(2, 4)
+      ];
+
+      setBanner('Welcome to Merge Bazaar! Tap 📦 or 🧺 to spawn items, or tap two matching items to merge.', 'normal');
+      renderAll();
+    }
+
+    function createOrder(minLevel = 1, maxLevel = 4) {
+      const chainKeys = Object.keys(CHAINS);
+      const chainKey = chainKeys[Math.floor(Math.random() * chainKeys.length)];
+      const level = Math.floor(Math.random() * (maxLevel - minLevel + 1)) + minLevel;
+      const itemData = CHAINS[chainKey].levels[level];
+      const rewardCoins = level * 15 + (level >= 3 ? 15 : 0);
+      const avatar = CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)];
+      return {
+        chain: chainKey,
+        level: level,
+        emoji: itemData.emoji,
+        name: itemData.name,
+        coins: rewardCoins,
+        avatar: avatar,
+        expiresIn: 90
+      };
+    }
+
+    function getEmptyIndices() {
+      const empty = [];
+      for (let i = 0; i < TOTAL_CELLS; i++) {
+        if (state.board[i] === null) {
+          empty.push(i);
+        }
+      }
+      return empty;
+    }
+
+    function isBoardFull() {
+      return getEmptyIndices().length === 0;
+    }
+
+    function hasMergeablePair() {
+      const counts = {};
+      for (let i = 0; i < TOTAL_CELLS; i++) {
+        const cell = state.board[i];
+        if (cell && cell.type === 'item' && cell.level < 7) {
+          const key = `${cell.chain}_${cell.level}`;
+          counts[key] = (counts[key] || 0) + 1;
+          if (counts[key] >= 2) return true;
+        }
+      }
+      return false;
+    }
+
+    function setBanner(text, type = 'normal') {
+      state.bannerText = text;
+      state.bannerType = type;
+    }
+
+    function handleGeneratorTap(index) {
+      const gen = state.board[index];
+      state.selectedBoardIndex = null;
+
+      const emptyIndices = getEmptyIndices();
+      if (emptyIndices.length === 0) {
+        setBanner('⚠️ Board Full! Merge two identical items or serve a customer order to free up space.', 'warning');
+        renderAll();
+        return;
+      }
+
+      // Find nearest or random empty cell
+      const targetIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      state.board[targetIndex] = {
+        type: 'item',
+        chain: gen.chain,
+        level: 1
+      };
+
+      state.lastFx = {
+        type: 'spawn',
+        index: targetIndex
+      };
+      playSound('spawn');
+
+      const itemInfo = CHAINS[gen.chain].levels[1];
+      if (isBoardFull()) {
+        setBanner(`Spawned ${itemInfo.emoji} ${itemInfo.name}! ⚠️ Board is now FULL! Merge items or serve an order.`, 'warning');
+      } else {
+        setBanner(`Spawned Level 1 ${itemInfo.emoji} ${itemInfo.name}! Tap two matching items to merge.`, 'normal');
+      }
+      renderAll();
+    }
+
+    function handleOrderTap(orderIdx) {
+      if (state.selectedOrderIndex === orderIdx) {
+        state.selectedOrderIndex = null;
+        setBanner('Order deselected. Tap items to merge or tap a crate to spawn.', 'normal');
+      } else {
+        state.selectedOrderIndex = orderIdx;
+        state.selectedBoardIndex = null;
+        const ord = state.orders[orderIdx];
+        setBanner(`Order selected: Tap a Level ${ord.level} ${ord.emoji} ${ord.name} on the board to serve it!`, 'info');
+      }
+      renderAll();
+    }
+
+    // Drag and drop: drag an item with finger or mouse, drop it on another tile to merge, or on an empty tile to move it.
+    let dragState = null;
+    let suppressClick = false;
+    function handleDrop(fromIdx, toIdx) {
+      if (fromIdx === toIdx) { handleCellTap(fromIdx); return; }
+      // If an order was selected, dragging cancels it so the merge/move works
+      if (state.selectedOrderIndex !== null) {
+        state.selectedOrderIndex = null;
+        setBanner('Order deselected. Dragging an item to merge or move it.', 'normal');
+      }
+      handleCellTap(fromIdx);
+      handleCellTap(toIdx);
+    }
+    function cellIndexFromPoint(x, y) {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return null;
+      const cell = el.closest ? el.closest('.cell') : null;
+      if (!cell) return null;
+      const grid = document.getElementById('boardGrid');
+      return Array.prototype.indexOf.call(grid.children, cell);
+    }
+
+    function handleCellTap(index) {
+      const cell = state.board[index];
+
+      // 1. If an order is currently selected, check if player tapped the matching item to serve
+      if (state.selectedOrderIndex !== null) {
+        const ord = state.orders[state.selectedOrderIndex];
+        if (cell && cell.type === 'item' && cell.chain === ord.chain && cell.level === ord.level) {
+          serveOrder(state.selectedOrderIndex, index);
+          return;
+        } else if (cell && cell.type === 'generator') {
+          // Switching to generator spawn cancels order selection
+          state.selectedOrderIndex = null;
+          handleGeneratorTap(index);
+          return;
+        } else {
+          setBanner(`That cell doesn't match the order (needs L${ord.level} ${ord.emoji} ${ord.name}). Tap matching item or tap order again to cancel.`, 'warning');
+          renderAll();
+          return;
+        }
+      }
+
+      // 2. Empty cell tapped
+      if (!cell) {
+        if (state.selectedBoardIndex !== null) {
+          // Move selected item to empty slot
+          state.board[index] = state.board[state.selectedBoardIndex];
+          state.board[state.selectedBoardIndex] = null;
+          state.selectedBoardIndex = null;
+          state.lastFx = { type: 'spawn', index };
+          setBanner('Moved item to empty tile.', 'normal');
+          renderAll();
+        }
+        return;
+      }
+
+      // 3. Generator crate tapped
+      if (cell.type === 'generator') {
+        handleGeneratorTap(index);
+        return;
+      }
+
+      // 4. Item tapped for merging / selecting (or scissors to remove it)
+      if (cell.type === 'item') {
+        if (state.scissorMode) {
+          state.scissorMode = false;
+          state.board[index] = null;
+          state.selectedBoardIndex = null;
+          setBanner('✂️ Item removed. Scissors used up.', 'info');
+          renderAll();
+          return;
+        }
+        if (state.selectedBoardIndex === null) {
+          state.selectedBoardIndex = index;
+          const itemData = CHAINS[cell.chain].levels[cell.level];
+          setBanner(`Selected L${cell.level} ${itemData.emoji} ${itemData.name}. Tap another L${cell.level} ${itemData.emoji} to merge, or tap an Order first to serve.`, 'normal');
+          renderAll();
+          return;
+        }
+
+        if (state.selectedBoardIndex === index) {
+          state.selectedBoardIndex = null;
+          setBanner('Item deselected.', 'normal');
+          renderAll();
+          return;
+        }
+
+        const firstCell = state.board[state.selectedBoardIndex];
+        if (firstCell && firstCell.type === 'item' && firstCell.chain === cell.chain && firstCell.level === cell.level) {
+          // Attempt merge
+          const maxLvl = CHAINS[cell.chain].levels.length - 1;
+          if (cell.level >= maxLvl) {
+            state.selectedBoardIndex = index;
+            setBanner(`Max level (${maxLvl}) reached for this item! Serve it to customers when ordered.`, 'info');
+            renderAll();
+            return;
+          }
+
+          if (state.energy < 1) {
+            setBanner('⚠️ Not enough Energy (⚡ 0)! Wait for energy to refill (+1 every 30s).', 'warning');
+            renderAll();
+            return;
+          }
+
+          // Deduct 1 energy and merge into target index
+          takeSnapshot();
+          state.energy -= 1;
+          const nextLevel = cell.level + 1;
+          let coinGain = nextLevel * 3;
+          const scoreGain = nextLevel * 10;
+          // Combo: 3 merges in a row within 10 seconds = double coins
+          const now = Date.now();
+          state.comboCount = (now - state.lastMergeTime < 10000) ? state.comboCount + 1 : 1;
+          state.lastMergeTime = now;
+          const isCombo = state.comboCount >= 3;
+          const isMegaCombo = state.comboCount >= 6;
+          if (isMegaCombo) coinGain = nextLevel * 3 * 3;
+          else if (isCombo) coinGain *= 2;
+          if (state.doubleMergesLeft > 0) { coinGain *= 2; state.doubleMergesLeft -= 1; }
+          playSound('merge');
+
+          state.board[index] = {
+            type: 'item',
+            chain: cell.chain,
+            level: nextLevel
+          };
+          state.board[state.selectedBoardIndex] = null;
+          state.selectedBoardIndex = null;
+
+          state.coins += coinGain;
+          state.score += scoreGain;
+          state.totalMerges += 1;
+          state.mergesToday += 1;
+          state.maxLevelToday = Math.max(state.maxLevelToday, nextLevel);
+          state.collected[`${cell.chain}_${nextLevel}`] = true;
+          // Completing a whole chain collection = +100 coins
+          const chainKeys = Object.keys(CHAINS);
+          chainKeys.forEach(ck => {
+            let full = true;
+            for (let lv = 1; lv <= 7; lv++) if (!state.collected[`${ck}_${lv}`]) full = false;
+            if (full && !state.achievements['collection_' + ck]) {
+              state.achievements['collection_' + ck] = true;
+              state.coins += 100;
+              setBanner(`📖 Collection complete! You made every ${CHAINS[ck].name} item! +100 🪙!`, 'success');
+            }
+          });
+          checkAchievements();
+
+          state.lastFx = {
+            type: 'merge',
+            index: index,
+            level: nextLevel,
+            coinGain: coinGain
+          };
+
+          if (nextLevel >= 3) {
+            triggerScreenShake();
+          }
+
+          const newItem = CHAINS[cell.chain].levels[nextLevel];
+          setBanner(`✨ Merged into L${nextLevel} ${newItem.emoji} ${newItem.name}! (+${coinGain} 🪙, +${scoreGain} Score, -1 ⚡)${isMegaCombo ? ' 🔥🔥 MEGA COMBO x3!' : isCombo ? ' 🔥 COMBO x2!' : ''}`, 'success');
+          renderAll();
+        } else {
+          // Select the newly tapped item instead
+          state.selectedBoardIndex = index;
+          const itemData = CHAINS[cell.chain].levels[cell.level];
+          setBanner(`Switched selection to L${cell.level} ${itemData.emoji} ${itemData.name}.`, 'normal');
+          renderAll();
+        }
+      }
+    }
+
+    function serveOrder(orderIdx, boardIdx) {
+      const ord = state.orders[orderIdx];
+      takeSnapshot();
+      state.board[boardIdx] = null;
+
+      const prevStars = state.stars;
+      const prevLevel = Math.floor(prevStars / 3) + 1;
+      const urgentBonus = (ord.expiresIn !== undefined && ord.expiresIn <= 30) ? 10 : 0;
+      const rush = eventActive();
+      state.coins += ord.coins + urgentBonus;
+      state.stars += rush ? 2 : 1;
+      state.score += ord.coins * 2 + 50;
+      state.totalServes += 1;
+      state.servesToday += 1;
+      checkAchievements();
+      const newLevel = Math.floor(state.stars / 3) + 1;
+      let levelUpMsg = '';
+      if (newLevel > prevLevel) {
+        state.energy = Math.min(MAX_ENERGY, state.energy + 20);
+        levelUpMsg = ` 🎉 LEVEL UP! You are now Level ${newLevel}! +20 ⚡ Energy!`;
+        playSound('levelup');
+      } else {
+        playSound('serve');
+      }
+
+      state.selectedOrderIndex = null;
+      state.selectedBoardIndex = null;
+
+      state.lastFx = {
+        type: 'serve',
+        index: boardIdx,
+        coinGain: ord.coins
+      };
+
+      triggerScreenShake();
+
+      // Generate replacement order scaling gently with progress
+      const maxOrderLvl = state.stars >= 10 ? 7 : state.stars >= 4 ? 5 : 4;
+      state.orders[orderIdx] = createOrder(1, maxOrderLvl);
+
+      let unlockMsg = '';
+      if (prevStars < 3 && state.stars >= 3) {
+        unlockMsg = ' 🎉 Unlocked Stall 1: Orchard Bakery Stall!';
+      } else if (prevStars < 6 && state.stars >= 6) {
+        unlockMsg = ' 🎉 Unlocked Stall 2: Royal Flower & Gold Stall!';
+      }
+
+      setBanner(`✅ Served ${ord.emoji} ${ord.name}! Earned +${ord.coins + urgentBonus} 🪙 and +${rush ? 2 : 1} ⭐!${rush ? ' 🔥 Bazaar Rush — double stars!' : ''}${urgentBonus ? ' ⏰ Fast serve bonus +10 🪙!' : ''}${unlockMsg}${levelUpMsg}`, 'success');
+      renderAll();
+    }
+
+    function boardHasOrderMatch(ord) {
+      for (let i = 0; i < TOTAL_CELLS; i++) {
+        const c = state.board[i];
+        if (c && c.type === 'item' && c.chain === ord.chain && c.level === ord.level) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function renderAll() {
+      // Stats
+      document.getElementById('scoreVal').textContent = state.score;
+      document.getElementById('coinsVal').textContent = state.coins;
+      document.getElementById('starsVal').textContent = state.stars;
+      document.getElementById('energyVal').textContent = `${state.energy}/${MAX_ENERGY}`;
+
+      const timerEl = document.getElementById('energyTimer');
+      if (state.energy >= MAX_ENERGY) {
+        timerEl.textContent = 'Full';
+      } else {
+        timerEl.textContent = `+1 in ${state.refillCountdown}s`;
+      }
+
+      // Level: 3 stars = 1 level
+      const level = Math.floor(state.stars / 3) + 1;
+      const starsInLevel = state.stars % 3;
+      document.getElementById('levelText').textContent = `Level ${level}  •  ⭐ ${starsInLevel}/3 to Level ${level + 1}`;
+      document.getElementById('levelFill').style.width = `${(starsInLevel / 3) * 100}%`;
+      document.getElementById('streakText').textContent = `🔥 ${state.streak} day streak`;
+      renderMissions();
+      // Story + renovation
+      const story = currentStory();
+      document.getElementById('storyText').textContent = `${story.text} — Rebuilt so far: ${story.build}.`;
+      // Live event banner
+      const ev = document.getElementById('eventBanner');
+      if (eventActive()) {
+        ev.classList.remove('off');
+        ev.textContent = `🔥 BAZAAR RUSH IS LIVE! Orders give DOUBLE stars! Ends in ~${eventEndsIn()} min — hurry!`;
+      } else {
+        ev.classList.add('off');
+        ev.textContent = `⏰ Next Bazaar Rush starts soon — orders will give double stars for 1 hour.`;
+      }
+      // Bazaar Pass
+      const passTrack = document.getElementById('passTrack');
+      passTrack.innerHTML = '';
+      PASS_TIERS.forEach((t, ti) => {
+        const reached = state.stars >= t.stars;
+        const claimed = !!state.passClaimed[ti];
+        const tier = document.createElement('div');
+        tier.className = 'pass-tier' + (claimed ? ' claimed' : reached ? ' reached' : '');
+        tier.innerHTML = `<div>⭐ ${t.stars}</div><div>${t.reward}</div>`;
+        const btn = document.createElement('button');
+        btn.textContent = claimed ? 'Claimed ✓' : 'Claim';
+        btn.disabled = !reached || claimed;
+        btn.addEventListener('click', () => {
+          state.passClaimed[ti] = true;
+          state.coins += t.coins;
+          state.energy = Math.min(MAX_ENERGY, state.energy + t.energy);
+          playSound('levelup');
+          setBanner(`🎟️ Bazaar Pass reward claimed: ${t.reward}!`, 'success');
+          renderAll();
+        });
+        tier.appendChild(btn);
+        passTrack.appendChild(tier);
+      });
+      // Collections
+      const cg = document.getElementById('collectionGrid');
+      cg.innerHTML = '';
+      let gotCount = 0, totalCount = 0;
+      Object.keys(CHAINS).forEach(ck => {
+        for (let lv = 1; lv <= 7; lv++) {
+          totalCount++;
+          const got = !!state.collected[`${ck}_${lv}`];
+          if (got) gotCount++;
+          const cell = document.createElement('div');
+          cell.className = 'collection-cell' + (got ? ' got' : '');
+          cell.textContent = got ? CHAINS[ck].levels[lv].emoji : '❓';
+          cell.title = CHAINS[ck].levels[lv].name;
+          cg.appendChild(cell);
+        }
+      });
+      document.getElementById('collectionText').textContent = `Collected ${gotCount}/${totalCount} items. Finish a full chain for +100 🪙!`;
+      // Leaderboard race
+      const lb = document.getElementById('leaderboardList');
+      lb.innerHTML = '';
+      raceScores().forEach((r, ri) => {
+        const row = document.createElement('div');
+        row.className = 'leaderboard-row' + (r.me ? ' me' : '');
+        row.innerHTML = `<span>${ri + 1}. ${r.emoji} ${r.name}${r.me ? ' (You)' : ''}</span><span>${r.score} pts</span>`;
+        lb.appendChild(row);
+      });
+      document.getElementById('muteBtn').textContent = state.muted ? '🔇 Sound Off' : '🔊 Sound On';
+      document.getElementById('undoBtn').disabled = !state.lastSnapshot || state.coins < 10;
+
+      // Stalls
+      const stall1 = document.getElementById('stall1');
+      const stall1Icon = document.getElementById('stall1Icon');
+      const stall1Status = document.getElementById('stall1Status');
+      if (state.stars >= 3) {
+        stall1.classList.add('unlocked');
+        stall1Icon.textContent = '🥐🍎';
+        stall1Status.textContent = 'Unlocked! Open for business';
+      } else {
+        stall1.classList.remove('unlocked');
+        stall1Icon.textContent = '🔒';
+        stall1Status.textContent = `Unlocks at 3 ⭐ (${state.stars}/3)`;
+      }
+
+      const stall2 = document.getElementById('stall2');
+      const stall2Icon = document.getElementById('stall2Icon');
+      const stall2Status = document.getElementById('stall2Status');
+      if (state.stars >= 6) {
+        stall2.classList.add('unlocked');
+        stall2Icon.textContent = '💐👑';
+        stall2Status.textContent = 'Unlocked! Grand Bazaar VIP';
+      } else {
+        stall2.classList.remove('unlocked');
+        stall2Icon.textContent = '🔒';
+        stall2Status.textContent = `Unlocks at 6 ⭐ (${state.stars}/6)`;
+      }
+
+      // Orders
+      const ordersBar = document.getElementById('ordersBar');
+      ordersBar.innerHTML = '';
+      state.orders.forEach((ord, idx) => {
+        const card = document.createElement('div');
+        card.className = 'order-card';
+        if (state.selectedOrderIndex === idx) {
+          card.classList.add('selected');
+        } else if (boardHasOrderMatch(ord)) {
+          card.classList.add('ready-match');
+        }
+
+        card.innerHTML = `
+          <div class="customer-avatar">${ord.avatar}</div>
+          <div class="order-want">
+            <span class="order-emoji">${ord.emoji}</span>
+            <span class="order-lvl">L${ord.level}</span>
+          </div>
+          <div class="order-name">${ord.name}</div>
+          <div class="order-reward">+${ord.coins} 🪙 +1 ⭐</div>
+          <div class="order-timer ${ord.expiresIn <= 30 ? 'urgent' : ''}" data-order-timer="${idx}">⏰ ${ord.expiresIn || 90}s left</div>
+        `;
+        card.addEventListener('click', () => handleOrderTap(idx));
+        ordersBar.appendChild(card);
+      });
+
+      // Status / Board Full Warning Banner
+      const bannerEl = document.getElementById('statusBanner');
+      bannerEl.className = 'status-banner';
+      if (isBoardFull() && state.bannerType !== 'warning') {
+        bannerEl.classList.add('warning');
+        bannerEl.textContent = '⚠️ Board Full! Merge matching items or serve an order to make space.';
+      } else {
+        if (state.bannerType === 'warning') bannerEl.classList.add('warning');
+        if (state.bannerType === 'info') bannerEl.classList.add('info');
+        if (state.bannerType === 'success') bannerEl.classList.add('success');
+        bannerEl.textContent = state.bannerText;
+      }
+
+      // 6x5 Board Grid
+      const boardGrid = document.getElementById('boardGrid');
+      boardGrid.innerHTML = '';
+      const activeOrder = state.selectedOrderIndex !== null ? state.orders[state.selectedOrderIndex] : null;
+      const fx = state.lastFx;
+      state.lastFx = null;
+
+      for (let i = 0; i < TOTAL_CELLS; i++) {
+        const cellData = state.board[i];
+        const cellEl = document.createElement('div');
+        cellEl.className = 'cell';
+
+        const idleCfg = CELL_IDLE_CONFIG[i];
+        cellEl.style.setProperty('--idle-dur', idleCfg.duration);
+        cellEl.style.setProperty('--idle-delay', idleCfg.delay);
+        cellEl.style.setProperty('--shine-delay', idleCfg.shineDelay);
+
+        if (cellData) {
+          if (cellData.type === 'generator') {
+            const chainInfo = CHAINS[cellData.chain];
+            cellEl.classList.add('generator');
+            if (cellData.chain === 'craft') {
+              cellEl.classList.add('craft-gen');
+            }
+            if (cellData.chain === 'toy') {
+              cellEl.classList.add('toy-gen');
+            }
+            cellEl.innerHTML = `
+              <div class="tile-surface"></div>
+              <span class="item-emoji ${idleCfg.animClass}">${chainInfo.crateEmoji}</span>
+              <span class="generator-badge">${chainInfo.crateLabel}</span>
+            `;
+          } else if (cellData.type === 'item') {
+            const itemInfo = CHAINS[cellData.chain].levels[cellData.level];
+            cellEl.classList.add('has-item', `level-${cellData.level}`);
+            if (state.selectedBoardIndex === i) {
+              cellEl.classList.add('selected-item');
+            }
+            if (activeOrder && activeOrder.chain === cellData.chain && activeOrder.level === cellData.level) {
+              cellEl.classList.add('serve-target');
+            }
+
+            // Ambient sparkles on higher-level items (L3+)
+            let sparklesHtml = '';
+            if (cellData.level >= 3) {
+              sparklesHtml += `<span class="ambient-sparkle s1">✨</span>`;
+            }
+            if (cellData.level >= 4) {
+              sparklesHtml += `<span class="ambient-sparkle s2">⭐</span>`;
+            }
+            if (cellData.level >= 5) {
+              sparklesHtml += `<span class="ambient-sparkle s3">💫</span>`;
+            }
+
+            cellEl.innerHTML = `
+              <div class="tile-surface"></div>
+              ${sparklesHtml}
+              <span class="item-emoji ${idleCfg.animClass}">${itemInfo.emoji}</span>
+              <span class="item-badge">L${cellData.level}</span>
+            `;
+          }
+        }
+
+        // Trigger merge / spawn / serve animations and particle bursts
+        if (fx && fx.index === i) {
+          if (fx.type === 'merge') {
+            cellEl.classList.add('merge-pop');
+            const isBig = fx.level >= 3;
+            spawnParticleBurst(cellEl, {
+              count: isBig ? 14 : 9,
+              floatText: `+${fx.coinGain} 🪙`,
+              showRing: true,
+              isBig: isBig
+            });
+          } else if (fx.type === 'spawn') {
+            cellEl.classList.add('spawn-pop');
+          } else if (fx.type === 'serve') {
+            spawnParticleBurst(cellEl, {
+              count: 14,
+              floatText: `+${fx.coinGain} 🪙 +1 ⭐`,
+              showRing: true,
+              isBig: true
+            });
+          }
+        }
+
+        cellEl.addEventListener('click', () => {
+          if (suppressClick) { suppressClick = false; return; }
+          handleCellTap(i);
+        });
+        // Drag and drop with finger or mouse (pointer events work for both)
+        cellEl.addEventListener('pointerdown', (e) => {
+          const cell = state.board[i];
+          if (!cell || cell.type !== 'item') return;
+          e.preventDefault();
+          // Keep getting move/up events even when the finger leaves this tile
+          try { cellEl.setPointerCapture(e.pointerId); } catch (err) { /* capture not supported */ }
+          dragState = { from: i, startX: e.clientX, startY: e.clientY, moved: false, ghost: null };
+          cellEl.classList.add('dragging');
+        });
+        cellEl.addEventListener('pointermove', (e) => {
+          if (!dragState || dragState.from !== i) return;
+          const dx = e.clientX - dragState.startX, dy = e.clientY - dragState.startY;
+          if (!dragState.moved && Math.sqrt(dx * dx + dy * dy) < 10) return;
+          dragState.moved = true;
+          if (!dragState.ghost) {
+            const cell = state.board[dragState.from];
+            const ghost = document.createElement('div');
+            ghost.className = 'drag-ghost';
+            ghost.textContent = CHAINS[cell.chain].levels[cell.level].emoji;
+            document.body.appendChild(ghost);
+            dragState.ghost = ghost;
+          }
+          dragState.ghost.style.left = e.clientX + 'px';
+          dragState.ghost.style.top = e.clientY + 'px';
+          document.querySelectorAll('.cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+          const overIdx = cellIndexFromPoint(e.clientX, e.clientY);
+          if (overIdx !== null && overIdx !== dragState.from) {
+            const grid = document.getElementById('boardGrid');
+            if (grid.children[overIdx]) grid.children[overIdx].classList.add('drag-over');
+          }
+        });
+        const endDrag = (e) => {
+          if (!dragState || dragState.from !== i) return;
+          const wasDrag = dragState.moved;
+          const from = dragState.from;
+          if (dragState.ghost) dragState.ghost.remove();
+          document.querySelectorAll('.cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+          cellEl.classList.remove('dragging');
+          dragState = null;
+          if (!wasDrag) return; // it was a tap, let the click handler run
+          suppressClick = true;
+          setTimeout(() => { suppressClick = false; }, 120);
+          const toIdx = cellIndexFromPoint(e.clientX, e.clientY);
+          if (toIdx === null || toIdx < 0) return;
+          handleDrop(from, toIdx);
+        };
+        cellEl.addEventListener('pointerup', endDrag);
+        cellEl.addEventListener('pointercancel', () => {
+          if (!dragState || dragState.from !== i) return;
+          if (dragState.ghost) dragState.ghost.remove();
+          document.querySelectorAll('.cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+          cellEl.classList.remove('dragging');
+          dragState = null;
+        });
+        boardGrid.appendChild(cellEl);
+      }
+      saveGame();
+    }
+
+    // Energy refill timer: +1 energy every 30 seconds, plus order countdowns
+    setInterval(() => {
+      let orderExpired = false;
+      state.orders.forEach((ord, idx) => {
+        if (ord.expiresIn === undefined) ord.expiresIn = 90;
+        ord.expiresIn -= 1;
+        const timerEl = document.querySelector(`[data-order-timer="${idx}"]`);
+        if (timerEl) {
+          timerEl.textContent = `⏰ ${Math.max(ord.expiresIn, 0)}s left`;
+          if (ord.expiresIn <= 30) timerEl.classList.add('urgent');
+        }
+        if (ord.expiresIn <= 0) {
+          state.orders[idx] = createOrder(1, state.stars >= 10 ? 7 : state.stars >= 4 ? 5 : 4);
+          orderExpired = true;
+        }
+      });
+      if (orderExpired) {
+        setBanner('⏰ A customer got impatient and left! A new order arrived. Serve fast for a +10 🪙 bonus!', 'warning');
+        renderAll();
+      }
+      if (state.energy < MAX_ENERGY) {
+        state.refillCountdown -= 1;
+        if (state.refillCountdown <= 0) {
+          state.energy += 1;
+          state.refillCountdown = REFILL_SECONDS;
+        }
+        const energyValEl = document.getElementById('energyVal');
+        const timerEl = document.getElementById('energyTimer');
+        if (energyValEl && timerEl) {
+          energyValEl.textContent = `${state.energy}/${MAX_ENERGY}`;
+          timerEl.textContent = state.energy >= MAX_ENERGY ? 'Full' : `+1 in ${state.refillCountdown}s`;
+        }
+      } else {
+        state.refillCountdown = REFILL_SECONDS;
+      }
+    }, 1000);
+
+    // Safety net: if a drag ever gets stuck, the next touch clears the ghost
+    window.addEventListener('pointerdown', () => {
+      if (dragState && dragState.ghost) {
+        dragState.ghost.remove();
+        document.querySelectorAll('.cell.drag-over, .cell.dragging').forEach(c => c.classList.remove('drag-over', 'dragging'));
+        dragState = null;
+      }
+    }, true);
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (confirm('Start a New Game? Your coins, stars and board will be reset.')) {
+        try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+        state.lastSnapshot = null; state.lastBonusDate = '';
+        initGame();
+      }
+    });
+
+    document.getElementById('undoBtn').addEventListener('click', () => {
+      if (!state.lastSnapshot) { setBanner('Nothing to undo yet.', 'info'); renderAll(); return; }
+      if (state.coins < 10) { setBanner('Need 10 🪙 to undo.', 'warning'); renderAll(); return; }
+      state.coins -= 10;
+      state.board = JSON.parse(JSON.stringify(state.lastSnapshot.board));
+      state.score = state.lastSnapshot.score; state.stars = state.lastSnapshot.stars;
+      state.energy = state.lastSnapshot.energy; state.orders = JSON.parse(JSON.stringify(state.lastSnapshot.orders));
+      state.lastSnapshot = null; state.selectedBoardIndex = null; state.selectedOrderIndex = null;
+      setBanner('↩️ Undid last move (-10 🪙).', 'info');
+      renderAll();
+    });
+
+    document.getElementById('buyEnergyBtn').addEventListener('click', () => {
+      if (state.energy >= MAX_ENERGY) { setBanner('Energy is already full!', 'info'); renderAll(); return; }
+      if (state.coins < 50) { setBanner('Need 50 🪙 for +20 Energy.', 'warning'); renderAll(); return; }
+      state.coins -= 50; state.energy = Math.min(MAX_ENERGY, state.energy + 20);
+      playSound('serve');
+      setBanner('⚡ Bought +20 Energy for 50 🪙!', 'success');
+      renderAll();
+    });
+
+    document.getElementById('buyItemBtn').addEventListener('click', () => {
+      if (state.coins < 100) { setBanner('Need 100 🪙 for a Level 3 item.', 'warning'); renderAll(); return; }
+      const empty = getEmptyIndices();
+      if (empty.length === 0) { setBanner('Board is full! Merge or serve first.', 'warning'); renderAll(); return; }
+      const chainKeys = Object.keys(CHAINS);
+      const chain = chainKeys[Math.floor(Math.random() * chainKeys.length)];
+      const idx = empty[Math.floor(Math.random() * empty.length)];
+      state.board[idx] = { type: 'item', chain, level: 3 };
+      state.coins -= 100;
+      state.lastFx = { type: 'spawn', index: idx };
+      playSound('serve');
+      setBanner(`🎁 Bought a Level 3 ${CHAINS[chain].levels[3].emoji} ${CHAINS[chain].levels[3].name} for 100 🪙!`, 'success');
+      renderAll();
+    });
+
+    document.getElementById('giftBtn').addEventListener('click', () => {
+      const now = Date.now();
+      if (now < state.giftNext) {
+        const mins = Math.ceil((state.giftNext - now) / 60000);
+        setBanner(`🎁 Next free gift in ${mins} min. Come back soon!`, 'info');
+        renderAll();
+        return;
+      }
+      state.giftNext = now + 15 * 60000;
+      if (Math.random() < 0.5) {
+        state.energy = Math.min(MAX_ENERGY, state.energy + 15);
+        setBanner('🎁 Free Gift! +15 ⚡ Energy!', 'success');
+      } else {
+        state.coins += 30;
+        setBanner('🎁 Free Gift! +30 🪙 Coins!', 'success');
+      }
+      playSound('serve');
+      renderAll();
+    });
+
+    document.getElementById('scissorsBtn').addEventListener('click', () => {
+      if (state.scissorMode) { state.scissorMode = false; setBanner('Scissors put away.', 'info'); renderAll(); return; }
+      if (state.coins < 30) { setBanner('Need 30 🪙 for Scissors.', 'warning'); renderAll(); return; }
+      state.coins -= 30;
+      state.scissorMode = true;
+      setBanner('✂️ Scissors ready! Tap any item to remove it and free up space.', 'info');
+      renderAll();
+    });
+
+    document.getElementById('doubleBtn').addEventListener('click', () => {
+      if (state.coins < 50) { setBanner('Need 50 🪙 for 2x Coins.', 'warning'); renderAll(); return; }
+      state.coins -= 50;
+      state.doubleMergesLeft += 5;
+      setBanner('✨ 2x Coins ON! Your next 5 merges give double coins!', 'success');
+      playSound('serve');
+      renderAll();
+    });
+
+    document.getElementById('muteBtn').addEventListener('click', () => {
+      state.muted = !state.muted;
+      saveGame();
+      renderAll();
+    });
+
+    // Load saved game if there is one, else start fresh
+    if (!loadGame()) {
+      initGame();
+    } else {
+      // Welcome back: your bazaar earned coins while you were away (max 50)
+      if (state.lastSeen > 0) {
+        const hoursAway = (Date.now() - state.lastSeen) / 3600000;
+        const idleCoins = Math.min(50, Math.floor(hoursAway * 5));
+        if (idleCoins > 0) {
+          state.coins += idleCoins;
+          setBanner(`👋 Welcome back! Your bazaar earned +${idleCoins} 🪙 while you were away!`, 'success');
+        } else {
+          setBanner('Welcome back! Your game was saved. Tap a crate to play!', 'normal');
+        }
+      }
+      renderAll();
+    }
+    checkDailyBonus();
+    renderAll();
+  </script>
+</body>
+</html>
